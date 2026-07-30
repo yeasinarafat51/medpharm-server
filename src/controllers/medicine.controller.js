@@ -9,25 +9,37 @@ const addMedicine = async (req, res) => {
   try {
     const medicine = req.body;
 
-    const purchasePrice = Number(medicine.purchasePrice);
+    // Convert to Number
+    medicine.purchasePrice = Number(medicine.purchasePrice);
+    medicine.profitPercent = Number(medicine.profitPercent);
+    medicine.mrpePrice = Number(medicine.mrpePrice);
+    medicine.bikriPercent = Number(medicine.bikriPercent);
 
-    const profitPercent = Number(medicine.profitPercent);
+    medicine.stock = Number(medicine.stock);
+    medicine.boxQuantity = Number(medicine.boxQuantity);
 
-    const sellingPrice = purchasePrice + (purchasePrice * profitPercent) / 100;
+    // Calculate Selling Price
+    medicine.sellingPrice = Number(
+      (
+        medicine.mrpePrice -
+        (medicine.mrpePrice * medicine.bikriPercent) / 100
+      ).toFixed(2),
+    );
 
-    medicine.purchasePrice = purchasePrice;
-
-    medicine.profitPercent = profitPercent;
-
-    medicine.sellingPrice = Number(sellingPrice.toFixed(2));
-
+    // Created Date
     medicine.createdAt = new Date();
 
+    // Save Medicine
     const result = await medicineCollection.insertOne(medicine);
 
-    res.status(201).json(result);
+    res.status(201).send({
+      success: true,
+      insertedId: result.insertedId,
+      message: "Medicine Added Successfully",
+    });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).send({
+      success: false,
       message: error.message,
     });
   }

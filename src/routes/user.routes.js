@@ -5,6 +5,7 @@ const {
   createUser,
   getAllUsers,
   getSingleUser,
+  getUserByEmail,
   updateUser,
   updateUserRole,
   deleteUser,
@@ -21,5 +22,5 @@ router.put("/:id", updateUser);
 router.patch("/:id/role", updateUserRole);
 
 router.delete("/:id", deleteUser);
-
+router.get("/email/:email", getUserByEmail);
 module.exports = router;

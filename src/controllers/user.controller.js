@@ -126,7 +126,30 @@ const getSingleUser = async (req, res) => {
     });
   }
 };
+const getUserByEmail = async (req, res) => {
+  try {
+    const email = req.params.email;
 
+    const user = await userCollection.findOne({ email });
+
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.send({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 // ======================================
 // Update User
 // ======================================
@@ -219,6 +242,7 @@ module.exports = {
   createUser,
   getAllUsers,
   getSingleUser,
+  getUserByEmail,
   updateUser,
   updateUserRole,
   deleteUser,
