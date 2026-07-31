@@ -7,6 +7,8 @@ const {
   getOrders,
   getMyOrders,
   updateOrderStatus,
+  getInvoiceByNumber,
+  getOrderById,
 } = require("../controllers/order.controller");
 
 // Customer Order
@@ -14,7 +16,11 @@ router.post("/", createOrder);
 
 // Admin All Orders
 router.get("/", getOrders);
+// Invoice Details
+router.get("/invoice/:invoiceNo", getInvoiceByNumber);
 
+// Single Order
+router.get("/:id", getOrderById);
 // Customer My Orders
 router.get("/my-orders/:email", getMyOrders);
 

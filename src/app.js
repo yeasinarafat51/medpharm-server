@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
+const invoiceRoutes = require("./routes/invoice.routes");
 const testRoutes = require("./routes/test.routes");
 const userRoutes = require("./routes/user.routes");
 const medicineRoutes = require("./routes/medicine.routes");
@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", userRoutes);
-
+app.use("/api/invoices", invoiceRoutes);
 app.use("/api/medicines", medicineRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/categories", categoryRoutes);

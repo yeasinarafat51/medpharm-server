@@ -4,55 +4,146 @@ const { ObjectId } = require("mongodb");
 const database = client.db("medpharmDB");
 
 const orderCollection = database.collection("orders");
+const invoiceCollection = database.collection("invoices");
+const medicineCollection = database.collection("medicines");
 
-// ===============================
+// ======================================
 // Create Order
-// ===============================
+// ======================================
 
 const createOrder = async (req, res) => {
   try {
     const order = req.body;
 
-    const medicineCollection = database.collection("medicines");
-
-    const medicine = await medicineCollection.findOne({
-      _id: new ObjectId(order.medicineId),
-    });
-
-    if (!medicine) {
-      return res.status(404).send({
-        success: false,
-        message: "Medicine not found",
-      });
-    }
-
-    if (medicine.stock < order.quantity) {
+    if (!order.items || order.items.length === 0) {
       return res.status(400).send({
         success: false,
-        message: "Insufficient Stock",
+        message: "Cart is Empty",
       });
     }
 
-    order.status = "Pending";
+    let grandTotal = 0;
 
-    order.orderDate = new Date();
+    // Check Stock
 
-    const result = await orderCollection.insertOne(order);
+    for (const item of order.items) {
+      const medicine = await medicineCollection.findOne({
+        _id: new ObjectId(item.medicineId),
+      });
 
-    await medicineCollection.updateOne(
-      {
-        _id: medicine._id,
-      },
-      {
-        $inc: {
-          stock: -Number(order.quantity),
+      if (!medicine) {
+        return res.status(404).send({
+          success: false,
+          message: `${item.medicineName} not found`,
+        });
+      }
+
+      if (Number(medicine.stock) < Number(item.quantity)) {
+        return res.status(400).send({
+          success: false,
+          message: `${item.medicineName} Stock Unavailable`,
+        });
+      }
+
+      grandTotal += Number(item.totalPrice);
+    }
+
+    // Invoice Number
+
+    const totalInvoice = await invoiceCollection.countDocuments();
+
+    const today = new Date();
+
+    const invoiceNo = `INV-${today.getFullYear()}${String(
+      today.getMonth() + 1,
+    ).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}-${String(
+      totalInvoice + 1,
+    ).padStart(5, "0")}`;
+
+    // Order Object
+
+    const newOrder = {
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      uid: order.uid || "",
+
+      phone: order.phone || "",
+      address: order.address || "",
+      note: order.note || "",
+
+      items: order.items,
+
+      grandTotal,
+
+      paymentStatus: "Unpaid",
+      orderStatus: "Pending",
+
+      invoiceNo,
+
+      orderDate: new Date(),
+    };
+
+    const result = await orderCollection.insertOne(newOrder);
+
+    // Reduce Stock
+
+    for (const item of order.items) {
+      await medicineCollection.updateOne(
+        {
+          _id: new ObjectId(item.medicineId),
         },
-      },
-    );
+        {
+          $inc: {
+            stock: -Number(item.quantity),
+          },
+        },
+      );
+    }
+
+    // Invoice
+
+    const invoice = {
+      invoiceNo,
+
+      orderId: result.insertedId,
+
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+
+      phone: order.phone || "",
+      address: order.address || "",
+      note: order.note || "",
+
+      uid: order.uid || "",
+
+      items: order.items.map((item) => ({
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        company: item.company,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        total: Number(item.totalPrice),
+      })),
+
+      subtotal: grandTotal,
+      discount: 0,
+      vat: 0,
+      grandTotal,
+
+      paymentStatus: "Unpaid",
+      orderStatus: "Pending",
+
+      createdAt: new Date(),
+    };
+
+    await invoiceCollection.insertOne(invoice);
 
     res.send({
       success: true,
-      insertedId: result.insertedId,
+      message: "Order Placed Successfully",
+      orderId: result.insertedId,
+      invoiceNo,
+      grandTotal,
     });
   } catch (error) {
     res.status(500).send({
@@ -62,9 +153,9 @@ const createOrder = async (req, res) => {
   }
 };
 
-// ===============================
-// Get All Orders (Admin)
-// ===============================
+// ======================================
+// Get All Orders
+// ======================================
 
 const getOrders = async (req, res) => {
   try {
@@ -73,7 +164,10 @@ const getOrders = async (req, res) => {
       .sort({ orderDate: -1 })
       .toArray();
 
-    res.send(orders);
+    res.send({
+      success: true,
+      orders,
+    });
   } catch (error) {
     res.status(500).send({
       success: false,
@@ -82,22 +176,23 @@ const getOrders = async (req, res) => {
   }
 };
 
-// ===============================
-// Get My Orders (Customer)
-// ===============================
+// ======================================
+// My Orders
+// ======================================
 
 const getMyOrders = async (req, res) => {
   try {
     const email = req.params.email;
 
     const orders = await orderCollection
-      .find({
-        customerEmail: email,
-      })
+      .find({ customerEmail: email })
       .sort({ orderDate: -1 })
       .toArray();
 
-    res.send(orders);
+    res.send({
+      success: true,
+      orders,
+    });
   } catch (error) {
     res.status(500).send({
       success: false,
@@ -106,9 +201,9 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-// ===============================
+// ======================================
 // Update Status
-// ===============================
+// ======================================
 
 const updateOrderStatus = async (req, res) => {
   try {
@@ -116,18 +211,105 @@ const updateOrderStatus = async (req, res) => {
 
     const { status } = req.body;
 
-    const result = await orderCollection.updateOne(
+    const order = await orderCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!order) {
+      return res.status(404).send({
+        success: false,
+        message: "Order Not Found",
+      });
+    }
+
+    await orderCollection.updateOne(
       {
         _id: new ObjectId(id),
       },
       {
         $set: {
-          status,
+          orderStatus: status,
         },
       },
     );
 
-    res.send(result);
+    await invoiceCollection.updateOne(
+      {
+        invoiceNo: order.invoiceNo,
+      },
+      {
+        $set: {
+          orderStatus: status,
+        },
+      },
+    );
+
+    res.send({
+      success: true,
+      message: "Status Updated Successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ======================================
+// Get Invoice By Number
+// ======================================
+
+const getInvoiceByNumber = async (req, res) => {
+  try {
+    const invoiceNo = req.params.invoiceNo;
+
+    const invoice = await invoiceCollection.findOne({
+      invoiceNo,
+    });
+
+    if (!invoice) {
+      return res.status(404).send({
+        success: false,
+        message: "Invoice Not Found",
+      });
+    }
+
+    res.send({
+      success: true,
+      invoice,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ======================================
+// Get Order By Id
+// ======================================
+
+const getOrderById = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const order = await orderCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!order) {
+      return res.status(404).send({
+        success: false,
+        message: "Order Not Found",
+      });
+    }
+
+    res.send({
+      success: true,
+      order,
+    });
   } catch (error) {
     res.status(500).send({
       success: false,
@@ -141,4 +323,6 @@ module.exports = {
   getOrders,
   getMyOrders,
   updateOrderStatus,
+  getInvoiceByNumber,
+  getOrderById,
 };
