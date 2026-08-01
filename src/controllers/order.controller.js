@@ -208,45 +208,20 @@ const getMyOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const id = req.params.id;
+    const { orderStatus } = req.body;
 
-    const { status } = req.body;
-
-    const order = await orderCollection.findOne({
-      _id: new ObjectId(id),
-    });
-
-    if (!order) {
-      return res.status(404).send({
-        success: false,
-        message: "Order Not Found",
-      });
-    }
-
-    await orderCollection.updateOne(
-      {
-        _id: new ObjectId(id),
-      },
+    const result = await orderCollection.updateOne(
+      { _id: new ObjectId(id) },
       {
         $set: {
-          orderStatus: status,
-        },
-      },
-    );
-
-    await invoiceCollection.updateOne(
-      {
-        invoiceNo: order.invoiceNo,
-      },
-      {
-        $set: {
-          orderStatus: status,
+          orderStatus,
         },
       },
     );
 
     res.send({
       success: true,
-      message: "Status Updated Successfully",
+      result,
     });
   } catch (error) {
     res.status(500).send({
@@ -255,7 +230,6 @@ const updateOrderStatus = async (req, res) => {
     });
   }
 };
-
 // ======================================
 // Get Invoice By Number
 // ======================================
@@ -317,7 +291,32 @@ const getOrderById = async (req, res) => {
     });
   }
 };
+const getSingleOrder = async (req, res) => {
+  try {
+    const id = req.params.id;
 
+    const order = await orderCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!order) {
+      return res.status(404).send({
+        success: false,
+        message: "Order Not Found",
+      });
+    }
+
+    res.send({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 module.exports = {
   createOrder,
   getOrders,
@@ -325,4 +324,5 @@ module.exports = {
   updateOrderStatus,
   getInvoiceByNumber,
   getOrderById,
+  getSingleOrder,
 };

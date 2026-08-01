@@ -9,6 +9,7 @@ const {
   updateOrderStatus,
   getInvoiceByNumber,
   getOrderById,
+  getSingleOrder,
 } = require("../controllers/order.controller");
 
 // Customer Order
@@ -21,6 +22,7 @@ router.get("/invoice/:invoiceNo", getInvoiceByNumber);
 
 // Single Order
 router.get("/:id", getOrderById);
+router.get("/:id", getSingleOrder);
 // Customer My Orders
 router.get("/my-orders/:email", getMyOrders);
 

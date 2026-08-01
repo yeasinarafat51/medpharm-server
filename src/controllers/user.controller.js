@@ -184,12 +184,24 @@ const updateUser = async (req, res) => {
 // ======================================
 // Update User Role
 // ======================================
+// ======================================
+// Update User Role
+// ======================================
 
 const updateUserRole = async (req, res) => {
   try {
     const id = req.params.id;
 
     const { role } = req.body;
+
+    const allowedRoles = ["customer", "admin", "super-admin"];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid Role",
+      });
+    }
 
     const result = await userCollection.updateOne(
       {
@@ -198,6 +210,44 @@ const updateUserRole = async (req, res) => {
       {
         $set: {
           role,
+        },
+      },
+    );
+
+    res.send({
+      success: true,
+      message: "User Role Updated Successfully",
+      result,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// ======================================
+// Update User By Email
+// ======================================
+
+// ======================================
+// Update User By Email
+// ======================================
+
+const updateUserByEmail = async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    const { address, phone } = req.body;
+
+    const result = await userCollection.updateOne(
+      {
+        email,
+      },
+      {
+        $set: {
+          address,
+          phone,
         },
       },
     );
@@ -213,7 +263,6 @@ const updateUserRole = async (req, res) => {
     });
   }
 };
-
 // ======================================
 // Delete User
 // ======================================
@@ -244,6 +293,7 @@ module.exports = {
   getSingleUser,
   getUserByEmail,
   updateUser,
+  updateUserByEmail,
   updateUserRole,
   deleteUser,
 };
