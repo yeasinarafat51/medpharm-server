@@ -1,7 +1,5 @@
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const serviceAccount = require("../../firebase/serviceAccountKey.json");
 
-console.log(serviceAccount);
 if (!getApps().length) {
   let credential;
 
@@ -13,8 +11,9 @@ if (!getApps().length) {
       privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
     });
   } else {
-    // Local
+    // Local Development
     const serviceAccount = require("../../firebase/serviceAccountKey.json");
+
     credential = cert(serviceAccount);
   }
 
