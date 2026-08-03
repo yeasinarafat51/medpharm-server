@@ -47,50 +47,27 @@ const addMedicine = async (req, res) => {
 
 const getMedicines = async (req, res) => {
   try {
-    const search = req.query.search?.trim() || "";
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 8;
-    const sort = req.query.sort === "desc" ? -1 : 1;
+    const search = req.query.search || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const sort = req.query.sort || "asc";
 
     const skip = (page - 1) * limit;
 
-    let query = {};
+    const query = {
+      medicineName: {
+        $regex: search,
+        $options: "i",
+      },
+    };
 
-    // Search only if user typed something
-    if (search) {
-      query = {
-        $or: [
-          {
-            medicineName: {
-              $regex: search,
-              $options: "i",
-            },
-          },
-          {
-            company: {
-              $regex: search,
-              $options: "i",
-            },
-          },
-          {
-            category: {
-              $regex: search,
-              $options: "i",
-            },
-          },
-          {
-            genericName: {
-              $regex: search,
-              $options: "i",
-            },
-          },
-        ],
-      };
-    }
+    const sortOption = {
+      medicineName: sort === "asc" ? 1 : -1,
+    };
 
     const medicines = await medicineCollection
       .find(query)
-      .sort({ medicineName: sort })
+      .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .toArray();
@@ -98,7 +75,6 @@ const getMedicines = async (req, res) => {
     const total = await medicineCollection.countDocuments(query);
 
     res.send({
-      success: true,
       medicines,
       total,
       page,
@@ -106,7 +82,6 @@ const getMedicines = async (req, res) => {
     });
   } catch (error) {
     res.status(500).send({
-      success: false,
       message: error.message,
     });
   }
