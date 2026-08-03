@@ -55,10 +55,32 @@ const getMedicines = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = {
-      medicineName: {
-        $regex: search,
-        $options: "i",
-      },
+      $or: [
+        {
+          medicineName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          company: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          category: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          genericName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ],
     };
 
     const sortOption = {
