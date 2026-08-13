@@ -45,14 +45,69 @@ const addMedicine = async (req, res) => {
   }
 };
 
+// const getMedicines = async (req, res) => {
+//   try {
+//     const search = req.query.search || "";
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 5;
+//     const sort = req.query.sort || "asc";
+
+//     const skip = (page - 1) * limit;
+
+//     const query = {
+//       $or: [
+//         {
+//           medicineName: {
+//             $regex: search,
+//             $options: "i",
+//           },
+//         },
+//         {
+//           company: {
+//             $regex: search,
+//             $options: "i",
+//           },
+//         },
+
+//         {
+//           genericName: {
+//             $regex: search,
+//             $options: "i",
+//           },
+//         },
+//       ],
+//     };
+
+//     const sortOption = {
+//       medicineName: sort === "asc" ? 1 : -1,
+//     };
+
+//     const medicines = await medicineCollection
+//       .find(query)
+//       .sort(sortOption)
+//       .skip(skip)
+//       .limit(limit)
+//       .toArray();
+
+//     const total = await medicineCollection.countDocuments(query);
+
+//     res.send({
+//       medicines,
+//       total,
+//       page,
+//       totalPages: Math.ceil(total / limit),
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       message: error.message,
+//     });
+//   }
+// };
+
 const getMedicines = async (req, res) => {
   try {
     const search = req.query.search || "";
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
     const sort = req.query.sort || "asc";
-
-    const skip = (page - 1) * limit;
 
     const query = {
       $or: [
@@ -68,7 +123,6 @@ const getMedicines = async (req, res) => {
             $options: "i",
           },
         },
-
         {
           genericName: {
             $regex: search,
@@ -82,27 +136,27 @@ const getMedicines = async (req, res) => {
       medicineName: sort === "asc" ? 1 : -1,
     };
 
+    // সব medicine আনবে
     const medicines = await medicineCollection
       .find(query)
       .sort(sortOption)
-      .skip(skip)
-      .limit(limit)
       .toArray();
 
-    const total = await medicineCollection.countDocuments(query);
-
     res.send({
+      success: true,
       medicines,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
+    console.error("Get Medicines Error:", error);
+
     res.status(500).send({
+      success: false,
       message: error.message,
     });
   }
 };
+
+
 const getSingleMedicine = async (req, res) => {
   try {
     const id = req.params.id;
