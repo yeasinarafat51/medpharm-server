@@ -1,7 +1,7 @@
-const { client } = require("../config/db");
+const { database } = require("../config/db");
 const { ObjectId } = require("mongodb");
 
-const database = client.db("medpharmDB");
+// const database = client.db("medpharmDB");
 
 const categoryCollection = database.collection("categories");
 
