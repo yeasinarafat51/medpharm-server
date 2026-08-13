@@ -156,7 +156,6 @@ const getMedicines = async (req, res) => {
   }
 };
 
-
 const getSingleMedicine = async (req, res) => {
   try {
     const id = req.params.id;
@@ -237,17 +236,43 @@ const updateMedicine = async (req, res) => {
 
     const medicine = { ...req.body };
 
-    // _id update করা যাবে না
+    // MongoDB _id update করা যাবে না
     delete medicine._id;
+
+    // ==========================================
+    // NUMBER CONVERSION
+    // ==========================================
 
     const purchasePrice = Number(medicine.purchasePrice) || 0;
     const profitPercent = Number(medicine.profitPercent) || 0;
+    const mrpePrice = Number(medicine.mrpePrice) || 0;
+    const bikriPercent = Number(medicine.bikriPercent) || 0;
+    const stock = Number(medicine.stock) || 0;
+    const boxQuantity = Number(medicine.boxQuantity) || 0;
+
+    // ==========================================
+    // SELLING PRICE
+    // MRP - BIKRI/DISCOUNT %
+    // ==========================================
+
+    const sellingPrice = mrpePrice - (mrpePrice * bikriPercent) / 100;
+
+    // ==========================================
+    // SAVE CLEAN DATA
+    // ==========================================
 
     medicine.purchasePrice = purchasePrice;
     medicine.profitPercent = profitPercent;
-    medicine.sellingPrice = Number(
-      (purchasePrice + (purchasePrice * profitPercent) / 100).toFixed(2),
-    );
+    medicine.mrpePrice = mrpePrice;
+    medicine.bikriPercent = bikriPercent;
+    medicine.stock = stock;
+    medicine.boxQuantity = boxQuantity;
+
+    medicine.sellingPrice = Number(sellingPrice.toFixed(2));
+
+    // ==========================================
+    // UPDATE DATABASE
+    // ==========================================
 
     const result = await medicineCollection.updateOne(
       {
@@ -258,11 +283,28 @@ const updateMedicine = async (req, res) => {
       },
     );
 
-    res.send(result);
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "Medicine not found",
+      });
+    }
+
+    res.send({
+      success: true,
+      message: "Medicine updated successfully",
+      sellingPrice: medicine.sellingPrice,
+      result,
+    });
   } catch (error) {
-    console.log(error); // Terminal-এ আসল Error দেখাবে
+    console.error("Update Medicine Error:", error);
 
     res.status(500).send({
+      success: false,
       message: error.message,
     });
   }
