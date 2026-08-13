@@ -1,27 +1,21 @@
+require("dotenv").config();
+
 const app = require("./app");
-const { connectDB } = require("./config/db");
+const connectDB = require("./config/db");
 
-let connectionPromise;
+const PORT = process.env.PORT || 5000;
 
-const handler = async (req, res) => {
+async function startServer() {
   try {
-    if (!connectionPromise) {
-      connectionPromise = connectDB();
-    }
+    await connectDB();
 
-    await connectionPromise;
-
-    return app(req, res);
-  } catch (error) {
-    console.error("❌ Server Error:", error);
-
-    connectionPromise = null;
-
-    return res.status(500).json({
-      success: false,
-      message: "Database connection failed",
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
   }
-};
+}
 
-module.exports = handler;
+startServer();

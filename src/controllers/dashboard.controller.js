@@ -1,6 +1,6 @@
-const { database } = require("../config/db");
+const { client } = require("../config/db");
 
-// const database = client.db("medpharmDB");
+const database = client.db("medpharmDB");
 
 const medicineCollection = database.collection("medicines");
 const orderCollection = database.collection("orders");
