@@ -107,36 +107,65 @@ const addMedicine = async (req, res) => {
 const getMedicines = async (req, res) => {
   try {
     const search = req.query.search || "";
+    const company = req.query.company || "";
     const sort = req.query.sort || "asc";
 
-    const query = {
-      $or: [
+    // =========================
+    // Base Query
+    // =========================
+
+    const query = {};
+
+    // =========================
+    // Search Filter
+    // =========================
+
+    if (search.trim()) {
+      query.$or = [
         {
           medicineName: {
-            $regex: search,
+            $regex: search.trim(),
             $options: "i",
           },
         },
         {
           company: {
-            $regex: search,
+            $regex: search.trim(),
             $options: "i",
           },
         },
         {
           genericName: {
-            $regex: search,
+            $regex: search.trim(),
             $options: "i",
           },
         },
-      ],
-    };
+      ];
+    }
+
+    // =========================
+    // Company Filter
+    // =========================
+
+    if (company.trim()) {
+      query.company = {
+        $regex: `^${company.trim()}$`,
+        $options: "i",
+      };
+    }
+
+    // =========================
+    // Sort
+    // =========================
 
     const sortOption = {
       medicineName: sort === "asc" ? 1 : -1,
     };
 
-    // সব medicine আনবে
+    // =========================
+    // Get Medicines
+    // =========================
+
     const medicines = await medicineCollection
       .find(query)
       .sort(sortOption)
