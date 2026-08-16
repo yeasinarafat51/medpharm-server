@@ -9,7 +9,7 @@ const medicineRoutes = require("./routes/medicine.routes");
 const categoryRoutes = require("./routes/category.routes");
 const orderRoutes = require("./routes/order.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
-
+const sliderRoutes = require("./routes/slider.routes");
 const app = express();
 
 // =========================
@@ -63,7 +63,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/test", testRoutes);
-
+app.use("/api/sliders", sliderRoutes);
 // =========================
 // Error Handler
 // =========================
