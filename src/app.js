@@ -10,6 +10,7 @@ const categoryRoutes = require("./routes/category.routes");
 const orderRoutes = require("./routes/order.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const sliderRoutes = require("./routes/slider.routes");
+const specialOfferRoutes = require("./routes/specialOfferRoutes");
 const app = express();
 
 // =========================
@@ -64,6 +65,9 @@ app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/test", testRoutes);
 app.use("/api/sliders", sliderRoutes);
+
+app.use("/api/special-offers", specialOfferRoutes);
+
 // =========================
 // Error Handler
 // =========================
