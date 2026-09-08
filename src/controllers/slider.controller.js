@@ -21,18 +21,10 @@ const addSlider = async (req, res) => {
       order,
     } = req.body;
 
-    // Validation
-    if (!title || !image) {
-      return res.status(400).send({
-        success: false,
-        message: "Title and image are required",
-      });
-    }
-
     const slider = {
-      title: title.trim(),
+      title: title?.trim() || "",
       description: description?.trim() || "",
-      image: image.trim(),
+      image: image?.trim() || "",
       buttonText: buttonText?.trim() || "Shop Now",
       buttonLink: buttonLink?.trim() || "/all-medicines",
 
@@ -251,13 +243,15 @@ const toggleSlider = async (req, res) => {
       });
     }
 
+    const newStatus = !slider.isActive;
+
     const result = await sliderCollection.updateOne(
       {
         _id: new ObjectId(id),
       },
       {
         $set: {
-          isActive: !slider.isActive,
+          isActive: newStatus,
           updatedAt: new Date(),
         },
       },
@@ -265,10 +259,8 @@ const toggleSlider = async (req, res) => {
 
     res.send({
       success: true,
-      message: `Slider ${
-        !slider.isActive ? "activated" : "deactivated"
-      } successfully`,
-      isActive: !slider.isActive,
+      message: `Slider ${newStatus ? "activated" : "deactivated"} successfully`,
+      isActive: newStatus,
       result,
     });
   } catch (error) {
@@ -320,6 +312,10 @@ const deleteSlider = async (req, res) => {
     });
   }
 };
+
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = {
   addSlider,
