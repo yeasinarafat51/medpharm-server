@@ -3,7 +3,7 @@ const { ObjectId } = require("mongodb");
 
 const database = client.db("medpharmDB");
 const sliderCollection = database.collection("sliders");
-
+// ytgdgd
 const addSlider = async (req, res) => {
   try {
     const {
