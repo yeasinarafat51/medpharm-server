@@ -4,44 +4,16 @@ const router = express.Router();
 
 const {
   getAdminStats,
+
   getSalesReport,
+
   getRecentOrders,
 } = require("../controllers/dashboard.controller");
 
-const verifyFirebaseToken = require("../middlewares/verifyFirebaseToken");
-const verifyRole = require("../middlewares/verifyRole");
+router.get("/admin-stats", getAdminStats);
 
-// ======================================
-// Admin Dashboard Statistics
-// ======================================
+router.get("/sales-report", getSalesReport);
 
-router.get(
-  "/admin-stats",
-  verifyFirebaseToken,
-  verifyRole("admin", "super-admin"),
-  getAdminStats,
-);
-
-// ======================================
-// Sales Report
-// ======================================
-
-router.get(
-  "/sales-report",
-  verifyFirebaseToken,
-  verifyRole("admin", "super-admin"),
-  getSalesReport,
-);
-
-// ======================================
-// Recent Orders
-// ======================================
-
-router.get(
-  "/recent-orders",
-  verifyFirebaseToken,
-  verifyRole("admin", "super-admin"),
-  getRecentOrders,
-);
+router.get("/recent-orders", getRecentOrders);
 
 module.exports = router;
