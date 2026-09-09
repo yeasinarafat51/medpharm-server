@@ -9,33 +9,52 @@ const userCollection = database.collection("users");
 // ======================================
 // Admin Dashboard Statistics
 // ======================================
-// ======================================
-// Admin Dashboard Statistics
-// ======================================
 
 const getAdminStats = async (req, res) => {
   try {
-    const totalMedicine = await medicineCollection.countDocuments();
+    const [
+      totalMedicine,
+      totalOrders,
+      totalCustomers,
+      lowStock,
+      revenueResult,
+    ] = await Promise.all([
+      medicineCollection.countDocuments(),
 
-    const totalOrders = await orderCollection.countDocuments();
+      orderCollection.countDocuments(),
 
-    const totalCustomers = await userCollection.countDocuments({
-      role: "customer",
-    });
+      userCollection.countDocuments({
+        role: "customer",
+      }),
 
-    const lowStock = await medicineCollection.countDocuments({
-      stock: { $lt: 10 },
-    });
+      medicineCollection.countDocuments({
+        stock: { $lt: 10 },
+      }),
 
-    const orders = await orderCollection.find().toArray();
+      orderCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalRevenue: {
+                $sum: {
+                  $convert: {
+                    input: "$grandTotal",
+                    to: "double",
+                    onError: 0,
+                    onNull: 0,
+                  },
+                },
+              },
+            },
+          },
+        ])
+        .toArray(),
+    ]);
 
-    let totalRevenue = 0;
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
 
-    orders.forEach((order) => {
-      totalRevenue += Number(order.totalPrice || 0);
-    });
-
-    res.send({
+    res.status(200).json({
       success: true,
       totalMedicine,
       totalOrders,
@@ -44,85 +63,163 @@ const getAdminStats = async (req, res) => {
       lowStock,
     });
   } catch (error) {
-    res.status(500).send({
+    console.error("Admin Stats Error:", error);
+
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to load admin dashboard statistics.",
     });
   }
 };
-// ==========================================
+
+// ======================================
 // Sales Report
-// ==========================================
+// ======================================
 
 const getSalesReport = async (req, res) => {
   try {
-    const orders = await orderCollection.find().toArray();
+    const now = new Date();
 
-    let totalRevenue = 0;
-    let todayRevenue = 0;
-    let monthRevenue = 0;
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
 
-    const today = new Date();
-    const currentDate = today.toDateString();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
 
-    orders.forEach((order) => {
-      const price = Number(order.totalPrice || 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      totalRevenue += price;
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-      const orderDate = new Date(order.orderDate);
+    const result = await orderCollection
+      .aggregate([
+        {
+          $addFields: {
+            calculatedOrderDate: {
+              $convert: {
+                input: "$orderDate",
+                to: "date",
+                onError: null,
+                onNull: null,
+              },
+            },
+            calculatedGrandTotal: {
+              $convert: {
+                input: "$grandTotal",
+                to: "double",
+                onError: 0,
+                onNull: 0,
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
 
-      if (orderDate.toDateString() === currentDate) {
-        todayRevenue += price;
-      }
+            totalRevenue: {
+              $sum: "$calculatedGrandTotal",
+            },
 
-      if (
-        orderDate.getMonth() === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      ) {
-        monthRevenue += price;
-      }
-    });
+            todayRevenue: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $gte: ["$calculatedOrderDate", startOfToday],
+                      },
+                      {
+                        $lt: ["$calculatedOrderDate", startOfTomorrow],
+                      },
+                    ],
+                  },
+                  "$calculatedGrandTotal",
+                  0,
+                ],
+              },
+            },
 
-    res.send({
+            monthRevenue: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $gte: ["$calculatedOrderDate", startOfMonth],
+                      },
+                      {
+                        $lt: ["$calculatedOrderDate", startOfNextMonth],
+                      },
+                    ],
+                  },
+                  "$calculatedGrandTotal",
+                  0,
+                ],
+              },
+            },
+
+            totalOrders: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    const report = result[0] || {
+      totalRevenue: 0,
+      todayRevenue: 0,
+      monthRevenue: 0,
+      totalOrders: 0,
+    };
+
+    res.status(200).json({
       success: true,
-      totalRevenue,
-      todayRevenue,
-      monthRevenue,
-      totalOrders: orders.length,
+      totalRevenue: report.totalRevenue || 0,
+      todayRevenue: report.todayRevenue || 0,
+      monthRevenue: report.monthRevenue || 0,
+      totalOrders: report.totalOrders || 0,
     });
   } catch (error) {
-    res.status(500).send({
+    console.error("Sales Report Error:", error);
+
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to load sales report.",
     });
   }
 };
-// =====================================
+
+// ======================================
 // Recent Orders
-// =====================================
+// ======================================
 
 const getRecentOrders = async (req, res) => {
   try {
     const orders = await orderCollection
-      .find()
+      .find({})
       .sort({ orderDate: -1 })
       .limit(10)
       .toArray();
 
-    res.send({
+    res.status(200).json({
       success: true,
       orders,
     });
   } catch (error) {
-    res.status(500).send({
+    console.error("Recent Orders Error:", error);
+
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to load recent orders.",
     });
   }
 };
+
+// ======================================
+// Export
+// ======================================
+
 module.exports = {
   getAdminStats,
   getSalesReport,
