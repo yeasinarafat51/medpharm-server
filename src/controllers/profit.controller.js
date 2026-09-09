@@ -32,20 +32,6 @@ const getProfitReport = async (req, res) => {
 
     const medicineMap = new Map();
 
-    const medicineIds = [];
-
-    orders.forEach((order) => {
-      if (!Array.isArray(order.items)) {
-        return;
-      }
-
-      order.items.forEach((item) => {
-        if (item.medicineId) {
-          medicineIds.push(String(item.medicineId));
-        }
-      });
-    });
-
     const medicines = await medicineCollection.find({}).toArray();
 
     medicines.forEach((medicine) => {
@@ -73,7 +59,6 @@ const getProfitReport = async (req, res) => {
           item.medicineName || item.name || "Unknown Medicine";
 
         const company = item.company || "N/A";
-
         const quantity = Number(item.quantity || 0);
 
         if (quantity <= 0) {
