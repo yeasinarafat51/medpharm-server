@@ -11,6 +11,7 @@ const orderRoutes = require("./routes/order.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const sliderRoutes = require("./routes/slider.routes");
 const specialOfferRoutes = require("./routes/specialOfferRoutes");
+const profitRoutes = require("./routes/profit.routes");
 const app = express();
 
 // =========================
@@ -67,7 +68,7 @@ app.use("/api/test", testRoutes);
 app.use("/api/sliders", sliderRoutes);
 
 app.use("/api/special-offers", specialOfferRoutes);
-
+app.use("/api/profit", profitRoutes);
 // =========================
 // Error Handler
 // =========================
